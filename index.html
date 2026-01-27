@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>知識王 - 線上即時同步版</title>
+    <title>知識王 - 除錯加強版</title>
     <style>
         :root { --main: #6c5ce7; --bg: #f0f2f5; --win: #00b894; --lose: #d63031; }
         body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
@@ -18,7 +18,7 @@
         .hidden { display: none; }
         button#start-btn { padding: 15px 40px; font-size: 1.2em; background: var(--main); color: white; border: none; border-radius: 50px; cursor: pointer; }
         button#start-btn:disabled { background: #ccc; cursor: not-allowed; }
-        #debug-log { font-size: 0.75em; color: #e67e22; margin-top: 20px; text-align: left; background: #fff5e6; padding: 10px; border-radius: 10px; }
+        #debug-log { font-size: 0.7em; color: #d63031; mt: 20px; text-align: left; background: #fff; border: 1px solid #eee; padding: 10px; max-height: 100px; overflow-y: auto; }
     </style>
 </head>
 <body>
@@ -27,8 +27,8 @@
     <div id="start-screen">
         <h1>知識王 KING</h1>
         <p id="msg">正在同步 Google 題庫...</p>
-        <button id="start-btn" onclick="initGame()" disabled>請稍候...</button>
-        <div id="debug-log">準備連線...</div>
+        <button id="start-btn" onclick="initGame()" disabled>連線中...</button>
+        <div id="debug-log">日誌紀錄：等待初始化...</div>
     </div>
 
     <div id="quiz-area" class="hidden">
@@ -48,7 +48,6 @@
 </div>
 
 <script>
-    // 你的 CSV 網址 (已加入防快取參數)
     const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaKApjd61Cc4pPeBW3gBknoHdaCkKavZnjSriMPVnWSNx6tbQyksw4fX9DDEo6zlSevqNQ4vvPkqMl/pub?gid=1437660801&single=true&output=csv&cache=" + new Date().getTime();
 
     let questions = [];
@@ -57,44 +56,44 @@
     async function fetchSheet() {
         const log = document.getElementById('debug-log');
         try {
-            log.innerText = "連線中...";
+            log.innerText = "正在發送請求...";
             const res = await fetch(CSV_URL);
-            if (!res.ok) throw new Error("無法取得資料");
             const csvData = await res.text();
             
             const lines = csvData.split(/\r?\n/);
             const temp = [];
+            const answerMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
 
-            lines.forEach(line => {
-                // 使用正則處理 CSV，防止題目內的逗號造成錯誤
-                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/);
+            lines.forEach((line, index) => {
+                // 使用更精準的 CSV 分隔邏輯
+                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+                
                 if (cols.length >= 6) {
-                    const ans = cols[1].replace(/"/g, '').trim().toUpperCase();
-                    if (['A', 'B', 'C', 'D'].includes(ans)) {
+                    const ansKey = cols[1].toUpperCase();
+                    if (answerMap.hasOwnProperty(ansKey)) {
                         temp.push({
-                            q: cols[0].replace(/"/g, '').trim(),
-                            options: [
-                                cols[2].replace(/"/g, '').trim(),
-                                cols[3].replace(/"/g, '').trim(),
-                                cols[4].replace(/"/g, '').trim(),
-                                cols[5].replace(/"/g, '').trim()
-                            ],
-                            a: { 'A': 0, 'B': 1, 'C': 2, 'D': 3 }[ans]
+                            q: cols[0],
+                            options: [cols[2], cols[3], cols[4], cols[5]],
+                            a: answerMap[ansKey]
                         });
+                    } else {
+                        if(index > 0 && cols[0] !== "") log.innerText += `\n列 ${index+1} 略過: 答案欄不是 A-D`;
                     }
                 }
             });
 
-            if (temp.length === 0) throw new Error("題庫格式不符或為空");
+            if (temp.length === 0) throw new Error("解析後題目數量為 0，請檢查 B 欄是否填寫 A, B, C 或 D");
+            
             questions = temp;
-            log.innerText = "連線成功！共載入 " + questions.length + " 題";
-            document.getElementById('msg').innerText = "題庫同步完成！";
+            log.style.color = "green";
+            log.innerText = "✅ 成功載入 " + questions.length + " 題";
+            document.getElementById('msg').innerText = "題庫已就緒！";
             const btn = document.getElementById('start-btn');
             btn.disabled = false;
             btn.innerText = "開始挑戰";
         } catch (err) {
+            log.style.color = "red";
             log.innerText = "❌ 錯誤：" + err.message;
-            console.error(err);
         }
     }
 
@@ -139,7 +138,7 @@
         timeLeft = 100;
         clearInterval(timer);
         timer = setInterval(() => {
-            timeLeft -= 1.8; 
+            timeLeft -= 2; 
             document.getElementById('timer-fill').style.width = timeLeft + "%";
             if (timeLeft <= 0) { clearInterval(timer); checkAnswer(-1); }
         }, 100);
@@ -154,13 +153,4 @@
             score += Math.max(10, Math.floor(timeLeft));
         } else {
             if (idx !== -1) btns[idx].classList.add('wrong');
-            btns[currentCorrectIdx].classList.add('correct');
-        }
-        document.getElementById('score-text').innerText = "得分: " + score;
-        setTimeout(() => { currentIdx++; showQuestion(); }, 1200);
-    }
-
-    window.onload = fetchSheet;
-</script>
-</body>
-</html>
+            btns[current
