@@ -1,0 +1,128 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+    <meta charset="UTF-8">
+    <title>知識王 - 離線直接玩版</title>
+    <style>
+        :root { --main: #6c5ce7; --bg: #f0f2f5; --win: #00b894; --lose: #d63031; }
+        body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        #game-box { background: white; width: 95%; max-width: 450px; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        #timer-bg { width: 100%; height: 12px; background: #eee; border-radius: 6px; overflow: hidden; margin: 20px 0; }
+        #timer-fill { width: 100%; height: 100%; background: var(--main); transition: width 0.1s linear; }
+        .q-text { font-size: 1.25em; font-weight: bold; margin-bottom: 20px; min-height: 60px; color: #2d3436; line-height: 1.6; }
+        .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
+        .opt-btn { padding: 14px; border: 2px solid #e0e0e0; border-radius: 12px; background: white; cursor: pointer; font-size: 1em; transition: 0.2s; outline: none; }
+        .correct { background: var(--win) !important; color: white; border-color: var(--win); }
+        .wrong { background: var(--lose) !important; color: white; border-color: var(--lose); }
+        .hidden { display: none; }
+        button#start-btn { padding: 15px 40px; font-size: 1.2em; background: var(--main); color: white; border: none; border-radius: 50px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div id="game-box">
+    <div id="start-screen">
+        <h1>知識王 KING</h1>
+        <p>題庫已載入完成！</p>
+        <button id="start-btn" onclick="initGame()">開始挑戰</button>
+    </div>
+
+    <div id="quiz-area" class="hidden">
+        <div style="display:flex; justify-content:space-between; font-weight:bold; color:var(--main);">
+            <span id="q-count">第 1 題</span>
+            <span id="score-text">得分: 0</span>
+        </div>
+        <div id="timer-bg"><div id="timer-fill"></div></div>
+        <div class="q-text" id="q-text"></div>
+        <div id="options-area" class="options-grid">
+            <button class="opt-btn" onclick="checkAnswer(0)"></button>
+            <button class="opt-btn" onclick="checkAnswer(1)"></button>
+            <button class="opt-btn" onclick="checkAnswer(2)"></button>
+            <button class="opt-btn" onclick="checkAnswer(3)"></button>
+        </div>
+    </div>
+</div>
+
+<script>
+    // 直接放入你 CSV 的題目內容
+    const questionsData = [
+        { q: "本國國家標準的簡稱是", o: ["ISO", "CNS", "JIS", "DIN"], a: 1 },
+        { q: "下列何者為電動機 (Motor) 的符號", o: ["(V)", "(G)", "(交流符號)", "(M)"], a: 3 },
+        { q: "國際標準組織簡稱為", o: ["ISO", "ANSI", "CNS", "DIN"], a: 0 },
+        { q: "我國國家標準 CNS 規定工業用圖紙，何種為公制", o: ["LETTER", "B", "A4", "LEGAL"], a: 2 },
+        { q: "電子元件與 PCB 作適當裝配應使用", o: ["熱風槍", "打火機", "電烙鐵", "吸錫器"], a: 2 },
+        { q: "在鋁板上需鑽孔的地方應先用何者在中心打點", o: ["中心沖", "劃線針", "鋼釘", "鐵釘"], a: 0 },
+        { q: "剝單芯導線時應使用何種工具最佳", o: ["指甲", "牙齒", "美工刀", "剝線鉗"], a: 3 },
+        { q: "PC 板銲接作業中，電烙鐵適當溫度約為", o: ["350℃～400℃", "230℃～250℃", "150℃～180℃", "180℃～200℃"], a: 1 },
+        { q: "電池屬於何種能量之轉換", o: ["光能與電能", "熱能與電能", "機械能與電能", "化學能與電能"], a: 3 },
+        { q: "麥拉電容器上標示 473K 則其電容量為", o: ["47μF", "0.47μF", "0.047μF", "4.7μF"], a: 2 },
+        { q: "電阻值 10kΩ 的 k 是代表 10 的幾次方", o: ["2 次方", "3 次方", "6 次方", "9 次方"], a: 1 }
+    ];
+
+    let quizList = [];
+    let currentIdx = 0, score = 0, timer, timeLeft = 100, currentCorrectIdx = 0;
+
+    function shuffle(arr) {
+        for (let i = arr.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [arr[i], arr[j]] = [arr[j], arr[i]];
+        }
+        return arr;
+    }
+
+    function initGame() {
+        document.getElementById('start-screen').classList.add('hidden');
+        document.getElementById('quiz-area').classList.remove('hidden');
+        quizList = shuffle([...questionsData]);
+        showQuestion();
+    }
+
+    function showQuestion() {
+        if (currentIdx >= quizList.length) {
+            document.getElementById('quiz-area').innerHTML = `<h2>挑戰結束</h2><h1>總得分：${score}</h1><button onclick="location.reload()" style="padding:10px 20px; border-radius:10px; cursor:pointer; background:var(--main); color:white; border:none;">再玩一次</button>`;
+            return;
+        }
+        const qData = quizList[currentIdx];
+        document.getElementById('q-count').innerText = `第 ${currentIdx + 1} / ${quizList.length} 題`;
+        document.getElementById('q-text').innerText = qData.q;
+
+        const opts = qData.o.map((t, i) => ({ t, isCorrect: i === qData.a }));
+        shuffle(opts);
+
+        const btns = document.querySelectorAll('.opt-btn');
+        opts.forEach((o, i) => {
+            btns[i].innerText = o.t;
+            btns[i].className = 'opt-btn';
+            btns[i].disabled = false;
+            if (o.isCorrect) currentCorrectIdx = i;
+        });
+        startTimer();
+    }
+
+    function startTimer() {
+        timeLeft = 100;
+        clearInterval(timer);
+        timer = setInterval(() => {
+            timeLeft -= 2; 
+            document.getElementById('timer-fill').style.width = timeLeft + "%";
+            if (timeLeft <= 0) { clearInterval(timer); checkAnswer(-1); }
+        }, 100);
+    }
+
+    function checkAnswer(idx) {
+        clearInterval(timer);
+        const btns = document.querySelectorAll('.opt-btn');
+        btns.forEach(b => b.disabled = true);
+        if (idx === currentCorrectIdx) {
+            btns[idx].classList.add('correct');
+            score += Math.max(10, Math.floor(timeLeft));
+        } else {
+            if (idx !== -1) btns[idx].classList.add('wrong');
+            btns[currentCorrectIdx].classList.add('correct');
+        }
+        document.getElementById('score-text').innerText = "得分: " + score;
+        setTimeout(() => { currentIdx++; showQuestion(); }, 1000);
+    }
+</script>
+</body>
+</html>
