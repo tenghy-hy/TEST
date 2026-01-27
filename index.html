@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>知識王 - 除錯加強版</title>
+    <title>知識王 - 終極連線版</title>
     <style>
         :root { --main: #6c5ce7; --bg: #f0f2f5; --win: #00b894; --lose: #d63031; }
-        body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        #game-box { background: white; width: 95%; max-width: 450px; padding: 30px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
-        #timer-bg { width: 100%; height: 12px; background: #eee; border-radius: 6px; overflow: hidden; margin: 20px 0; }
+        body { font-family: sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
+        #game-box { background: white; width: 90%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        #timer-bg { width: 100%; height: 10px; background: #eee; border-radius: 5px; margin: 15px 0; overflow: hidden; }
         #timer-fill { width: 100%; height: 100%; background: var(--main); transition: width 0.1s linear; }
-        .q-text { font-size: 1.25em; font-weight: bold; margin-bottom: 20px; min-height: 60px; color: #2d3436; line-height: 1.6; }
+        .q-text { font-size: 1.2em; font-weight: bold; margin-bottom: 20px; color: #2d3436; }
         .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .opt-btn { padding: 14px; border: 2px solid #e0e0e0; border-radius: 12px; background: white; cursor: pointer; font-size: 1em; transition: 0.2s; outline: none; }
-        .correct { background: var(--win) !important; color: white; border-color: var(--win); }
-        .wrong { background: var(--lose) !important; color: white; border-color: var(--lose); }
+        .opt-btn { padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; background: white; cursor: pointer; font-size: 1em; }
+        .correct { background: var(--win) !important; color: white; }
+        .wrong { background: var(--lose) !important; color: white; }
         .hidden { display: none; }
-        button#start-btn { padding: 15px 40px; font-size: 1.2em; background: var(--main); color: white; border: none; border-radius: 50px; cursor: pointer; }
-        button#start-btn:disabled { background: #ccc; cursor: not-allowed; }
-        #debug-log { font-size: 0.7em; color: #d63031; mt: 20px; text-align: left; background: #fff; border: 1px solid #eee; padding: 10px; max-height: 100px; overflow-y: auto; }
+        #debug-box { margin-top: 20px; padding: 10px; background: #333; color: #0f0; font-family: monospace; font-size: 11px; text-align: left; border-radius: 5px; max-height: 150px; overflow-y: auto; }
+        button#start-btn { padding: 12px 30px; background: var(--main); color: white; border: none; border-radius: 20px; cursor: pointer; font-size: 1.1em; }
+        button#start-btn:disabled { background: #ccc; }
     </style>
 </head>
 <body>
@@ -27,18 +27,19 @@
     <div id="start-screen">
         <h1>知識王 KING</h1>
         <p id="msg">正在同步 Google 題庫...</p>
-        <button id="start-btn" onclick="initGame()" disabled>連線中...</button>
-        <div id="debug-log">日誌紀錄：等待初始化...</div>
+        <button id="start-btn" onclick="initGame()" disabled>等待讀取中...</button>
+        <div id="debug-box">系統準備中...</div>
+        <button onclick="fetchSheet()" style="margin-top:10px; font-size:10px;">手動重新連線</button>
     </div>
 
     <div id="quiz-area" class="hidden">
-        <div style="display:flex; justify-content:space-between; font-weight:bold; color:var(--main);">
-            <span id="q-count">載入中...</span>
+        <div style="display:flex; justify-content:space-between; font-weight:bold;">
+            <span id="q-count">0/0</span>
             <span id="score-text">得分: 0</span>
         </div>
         <div id="timer-bg"><div id="timer-fill"></div></div>
         <div class="q-text" id="q-text"></div>
-        <div id="options-area" class="options-grid">
+        <div class="options-grid" id="options-area">
             <button class="opt-btn" onclick="checkAnswer(0)"></button>
             <button class="opt-btn" onclick="checkAnswer(1)"></button>
             <button class="opt-btn" onclick="checkAnswer(2)"></button>
@@ -48,26 +49,33 @@
 </div>
 
 <script>
-    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaKApjd61Cc4pPeBW3gBknoHdaCkKavZnjSriMPVnWSNx6tbQyksw4fX9DDEo6zlSevqNQ4vvPkqMl/pub?gid=1437660801&single=true&output=csv&cache=" + new Date().getTime();
+    // 這次網址後方隨機數加強，確保不抓舊檔案
+    const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaKApjd61Cc4pPeBW3gBknoHdaCkKavZnjSriMPVnWSNx6tbQyksw4fX9DDEo6zlSevqNQ4vvPkqMl/pub?gid=1437660801&single=true&output=csv&v=" + Math.random();
 
     let questions = [];
     let currentIdx = 0, score = 0, timer, timeLeft = 100, currentCorrectIdx = 0;
 
+    function log(text) {
+        const box = document.getElementById('debug-box');
+        box.innerHTML += "><br>" + text;
+        box.scrollTop = box.scrollHeight;
+    }
+
     async function fetchSheet() {
-        const log = document.getElementById('debug-log');
+        log("開始發送 Fetch...");
         try {
-            log.innerText = "正在發送請求...";
             const res = await fetch(CSV_URL);
-            const csvData = await res.text();
+            if (!res.ok) throw new Error("網路請求失敗: " + res.status);
             
-            const lines = csvData.split(/\r?\n/);
+            const rawText = await res.text();
+            log("收到原始資料，前50字：" + rawText.substring(0, 50));
+
+            const lines = rawText.split(/\r?\n/);
             const temp = [];
             const answerMap = { 'A': 0, 'B': 1, 'C': 2, 'D': 3 };
 
-            lines.forEach((line, index) => {
-                // 使用更精準的 CSV 分隔邏輯
+            lines.forEach((line, i) => {
                 const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
-                
                 if (cols.length >= 6) {
                     const ansKey = cols[1].toUpperCase();
                     if (answerMap.hasOwnProperty(ansKey)) {
@@ -76,24 +84,22 @@
                             options: [cols[2], cols[3], cols[4], cols[5]],
                             a: answerMap[ansKey]
                         });
-                    } else {
-                        if(index > 0 && cols[0] !== "") log.innerText += `\n列 ${index+1} 略過: 答案欄不是 A-D`;
                     }
                 }
             });
 
-            if (temp.length === 0) throw new Error("解析後題目數量為 0，請檢查 B 欄是否填寫 A, B, C 或 D");
-            
-            questions = temp;
-            log.style.color = "green";
-            log.innerText = "✅ 成功載入 " + questions.length + " 題";
-            document.getElementById('msg').innerText = "題庫已就緒！";
-            const btn = document.getElementById('start-btn');
-            btn.disabled = false;
-            btn.innerText = "開始挑戰";
+            if (temp.length === 0) {
+                log("❌ 解析失敗：雖然有抓到字，但沒看到 A/B/C/D 答案。");
+            } else {
+                questions = temp;
+                log("✅ 成功解析 " + questions.length + " 題！");
+                document.getElementById('msg').innerText = "連線成功！";
+                const btn = document.getElementById('start-btn');
+                btn.disabled = false;
+                btn.innerText = "開始挑戰";
+            }
         } catch (err) {
-            log.style.color = "red";
-            log.innerText = "❌ 錯誤：" + err.message;
+            log("❌ 連線錯誤：" + err.message);
         }
     }
 
@@ -114,16 +120,14 @@
 
     function showQuestion() {
         if (currentIdx >= questions.length) {
-            document.getElementById('quiz-area').innerHTML = `<h2>挑戰結束</h2><h1>得分：${score}</h1><button onclick="location.reload()" style="padding:10px 20px; border-radius:10px; cursor:pointer;">再玩一次</button>`;
+            document.getElementById('quiz-area').innerHTML = `<h2>挑戰結束</h2><h1>得分：${score}</h1><button onclick="location.reload()">再玩一次</button>`;
             return;
         }
         const qData = questions[currentIdx];
-        document.getElementById('q-count').innerText = `第 ${currentIdx + 1} / ${questions.length} 題`;
+        document.getElementById('q-count').innerText = `${currentIdx + 1} / ${questions.length}`;
         document.getElementById('q-text').innerText = qData.q;
-
         const opts = qData.options.map((t, i) => ({ t, isCorrect: i === qData.a }));
         shuffle(opts);
-
         const btns = document.querySelectorAll('.opt-btn');
         opts.forEach((o, i) => {
             btns[i].innerText = o.t;
@@ -153,4 +157,13 @@
             score += Math.max(10, Math.floor(timeLeft));
         } else {
             if (idx !== -1) btns[idx].classList.add('wrong');
-            btns[current
+            btns[currentCorrectIdx].classList.add('correct');
+        }
+        document.getElementById('score-text').innerText = "得分: " + score;
+        setTimeout(() => { currentIdx++; showQuestion(); }, 1200);
+    }
+
+    window.onload = fetchSheet;
+</script>
+</body>
+</html>
