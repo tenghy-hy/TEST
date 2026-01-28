@@ -18,7 +18,7 @@
         .hidden { display: none; }
         select#player-no { width: 100%; padding: 12px; font-size: 1.1em; border-radius: 10px; border: 2px solid var(--main); margin-bottom: 20px; }
         button#start-btn { padding: 15px 40px; font-size: 1.2em; background: var(--main); color: white; border: none; border-radius: 50px; cursor: pointer; }
-        #debug-log { background: #333; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; text-align: left; margin-top: 20px; border-radius: 5px; max-height: 100px; overflow-y: auto; }
+        #debug-log { background: #333; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; text-align: left; margin-top: 20px; border-radius: 5px; max-height: 100px; overflow-y: auto; word-break: break-all; }
     </style>
 </head>
 <body>
@@ -29,7 +29,7 @@
         <p>請選擇座號：</p>
         <select id="player-no"></select>
         <button id="start-btn" onclick="initGame()" disabled>載入題庫中...</button>
-        <div id="debug-log">系統狀態：準備中...</div>
+        <div id="debug-log">系統狀態：準備連線...</div>
     </div>
 
     <div id="quiz-area" class="hidden">
@@ -40,10 +40,10 @@
         <div id="timer-bg"><div id="timer-fill"></div></div>
         <div id="q-text" class="q-text"></div>
         <div class="options-grid" id="options-area">
-            <button class="opt-btn" onclick="checkAnswer(1)">1</button>
-            <button class="opt-btn" onclick="checkAnswer(2)">2</button>
-            <button class="opt-btn" onclick="checkAnswer(3)">3</button>
-            <button class="opt-btn" onclick="checkAnswer(4)">4</button>
+            <button class="opt-btn" onclick="handleAnswer(1)">1</button>
+            <button class="opt-btn" onclick="handleAnswer(2)">2</button>
+            <button class="opt-btn" onclick="handleAnswer(3)">3</button>
+            <button class="opt-btn" onclick="handleAnswer(4)">4</button>
         </div>
     </div>
 
@@ -59,7 +59,7 @@
 </div>
 
 <script>
-    // --- 配置區 ---
+    // --- 修正後的配置連結 ---
     const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaKApjd61Cc4pPeBW3gBknoHdaCkKavZnjSriMPVnWSNx6tbQyksw4fX9DDEo6zlSevqNQ4vvPkqMl/pub?gid=1437660801&single=true&output=csv";
     const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScOCC3XH910Aj2izzG6Un-9P0y5g8KlbrCDxd1-LvsT1uSRow/formResponse";
     const ID_NO = "entry.380705505";
@@ -71,56 +71,54 @@
     let currentIdx = 0, score = 0, timer, timeLeft = 100, currentCorrectValue = 0;
 
     function log(txt) {
-        console.log(txt);
         document.getElementById('debug-log').innerHTML += "<br>> " + txt;
     }
 
-    // 1. 產生座號
+    // 1. 初始化座號
     const sel = document.getElementById('player-no');
     for(let i=1; i<=36; i++){
-        let o = document.createElement('option');
-        o.value = i; o.textContent = i + " 號";
+        let o = document.createElement('option'); o.value = i; o.textContent = i + " 號";
         sel.appendChild(o);
     }
 
-    // 2. 載入題庫
+    // 2. 核心載入函數 (修正網址拼湊)
     async function loadData() {
-        log("開始連線 Google Sheets...");
+        log("發送請求...");
         try {
-            const res = await fetch(SHEET_CSV + "?cache=" + Date.now());
-            if (!res.ok) throw new Error("網路請求失敗: " + res.status);
+            // 使用更安全的方式處理快取網址
+            const fetchUrl = SHEET_CSV.includes('?') ? `${SHEET_CSV}&t=${Date.now()}` : `${SHEET_CSV}?t=${Date.now()}`;
+            const res = await fetch(fetchUrl);
+            
+            if (!res.ok) throw new Error("代碼 " + res.status);
+            
             const text = await res.text();
-            log("收到資料，正在解析...");
+            log("讀取成功，解析中...");
             
             const lines = text.split(/\r?\n/);
             const temp = [];
-            lines.forEach((line, idx) => {
+            lines.forEach((line) => {
                 const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
-                // 這裡改為 1, 2, 3, 4 判斷
-                const validAns = ['1', '2', '3', '4'];
-                if (cols.length >= 6 && validAns.includes(cols[1])) {
-                    temp.push({ 
-                        q: cols[0], 
-                        opts: [cols[2], cols[3], cols[4], cols[5]], 
-                        a: parseInt(cols[1]) // 正確答案是數字 1~4
-                    });
+                if (cols.length >= 6 && ['1','2','3','4'].includes(cols[1])) {
+                    temp.push({ q: cols[0], opts: [cols[2], cols[3], cols[4], cols[5]], a: parseInt(cols[1]) });
                 }
             });
 
             if (temp.length === 0) {
-                log("錯誤：解析後題目數量為 0。請檢查 CSV 第二欄是否為數字 1, 2, 3 或 4");
+                log("警告：解析不到題目。請確認 B 欄是數字 1-4");
             } else {
                 allQuestions = temp;
                 document.getElementById('start-btn').disabled = false;
                 document.getElementById('start-btn').innerText = "開始挑戰";
-                log("成功！載入 " + allQuestions.length + " 題。");
+                log("完成！載入 " + allQuestions.length + " 題");
             }
         } catch (e) {
-            log("連線發生錯誤：" + e.message);
+            log("錯誤訊息：" + e.message);
+            log("請確認試算表「發佈到網路」設定是否正確");
         }
     }
 
     function initGame() {
+        if(!sel.value) return;
         gameQuestions = [...allQuestions].sort(() => Math.random() - 0.5).slice(0, 10);
         document.getElementById('start-screen').classList.add('hidden');
         document.getElementById('quiz-area').classList.remove('hidden');
@@ -132,19 +130,15 @@
         const data = gameQuestions[currentIdx];
         document.getElementById('q-count').innerText = `${currentIdx+1} / 10`;
         document.getElementById('q-text').innerText = data.q;
-        
-        // 取得正確答案的文字 (例如答案是 1，文字就是 data.opts[0])
-        const correctText = data.opts[data.a - 1];
-        
-        // 選項按鈕文字更新
+        currentCorrectValue = data.a;
+
         const btns = document.querySelectorAll('.opt-btn');
         btns.forEach((btn, i) => {
-            btn.innerText = data.opts[i]; // 顯示選單文字
+            btn.innerText = (i + 1) + ". " + data.opts[i]; // 顯示「1. 選項文字」
             btn.className = 'opt-btn';
             btn.disabled = false;
         });
         
-        currentCorrectValue = data.a; // 存下正確編號 (1~4)
         startTimer();
     }
 
@@ -154,11 +148,11 @@
         timer = setInterval(() => {
             timeLeft -= 2.5; 
             document.getElementById('timer-fill').style.width = timeLeft + "%";
-            if (timeLeft <= 0) { clearInterval(timer); checkAnswer(-1); }
+            if (timeLeft <= 0) { clearInterval(timer); handleAnswer(-1); }
         }, 100);
     }
 
-    function checkAnswer(val) {
+    function handleAnswer(val) {
         clearInterval(timer);
         const btns = document.querySelectorAll('.opt-btn');
         btns.forEach(b => b.disabled = true);
@@ -185,7 +179,7 @@
     async function loadRank() {
         const content = document.getElementById('rank-content');
         try {
-            const res = await fetch(RANK_CSV + "?t=" + Date.now());
+            const res = await fetch(RANK_CSV + (RANK_CSV.includes('?') ? '&' : '?') + "t=" + Date.now());
             const text = await res.text();
             const lines = text.split(/\r?\n/).slice(1);
             let data = lines.map(line => {
@@ -193,8 +187,8 @@
                 return { n: c[1], s: parseInt(c[2]) || 0 };
             }).filter(i => i.n);
             data.sort((a, b) => b.s - a.s);
-            content.innerHTML = data.slice(0, 5).map((it, i) => `<div>${i+1}. ${it.n}號 (${it.s}分)</div>`).join('');
-        } catch (e) { content.innerText = "排行載入失敗"; }
+            content.innerHTML = data.slice(0, 5).map((it, i) => `<div>${i+1}. ${it.n}號 (${it.s}分)</div>`).join('') || "尚無資料";
+        } catch (e) { content.innerText = "排行榜載入中..."; }
     }
 
     window.onload = loadData;
