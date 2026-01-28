@@ -3,63 +3,63 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>知識王 KING</title>
+    <title>工作項目 02：作業準備</title>
     <style>
-        :root { --main: #6c5ce7; --bg: #f0f2f5; --win: #00b894; --lose: #d63031; }
+        :root { --main: #0984e3; --bg: #f0f2f5; --win: #00b894; --lose: #d63031; }
         body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
-        #game-box { background: white; width: 95%; max-width: 450px; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
-        #timer-bg { width: 100%; height: 12px; background: #eee; border-radius: 6px; overflow: hidden; margin: 15px 0; }
+        #game-box { background: white; width: 95%; max-width: 450px; padding: 25px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        #timer-bg { width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin: 15px 0; }
         #timer-fill { width: 100%; height: 100%; background: var(--main); transition: width 0.1s linear; }
-        .q-text { font-size: 1.2em; font-weight: bold; margin-bottom: 20px; min-height: 60px; color: #2d3436; }
+        .q-text { font-size: 1.15em; font-weight: bold; margin-bottom: 20px; min-height: 60px; color: #2d3436; text-align: left; }
         .options-grid { display: grid; grid-template-columns: 1fr; gap: 10px; }
-        .opt-btn { padding: 14px; border: 2px solid #e0e0e0; border-radius: 12px; background: white; cursor: pointer; font-size: 1.1em; }
+        .opt-btn { padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; background: white; cursor: pointer; font-size: 1.05em; text-align: left; }
         .correct { background: var(--win) !important; color: white; border-color: var(--win); }
         .wrong { background: var(--lose) !important; color: white; border-color: var(--lose); }
         .hidden { display: none; }
-        select#player-no { width: 100%; padding: 12px; font-size: 1.1em; border-radius: 10px; border: 2px solid var(--main); margin-bottom: 20px; }
-        button#start-btn { padding: 15px 40px; font-size: 1.2em; background: var(--main); color: white; border: none; border-radius: 50px; cursor: pointer; }
-        #debug-log { background: #333; color: #0f0; padding: 10px; font-family: monospace; font-size: 12px; text-align: left; margin-top: 20px; border-radius: 5px; max-height: 100px; overflow-y: auto; word-break: break-all; }
+        select#player-no { width: 100%; padding: 10px; font-size: 1.1em; border-radius: 8px; border: 2px solid var(--main); margin-bottom: 20px; }
+        button#start-btn { padding: 12px 35px; font-size: 1.2em; background: var(--main); color: white; border: none; border-radius: 50px; cursor: pointer; }
+        #debug-log { background: #222; color: #00ff00; padding: 10px; font-family: monospace; font-size: 11px; text-align: left; margin-top: 20px; border-radius: 5px; max-height: 80px; overflow-y: auto; word-break: break-all; }
     </style>
 </head>
 <body>
 
 <div id="game-box">
     <div id="start-screen">
-        <h1>知識王 KING</h1>
-        <p>請選擇座號：</p>
+        <h2 style="color: var(--main);">工作項目 02：作業準備</h2>
+        <p>請選擇座號開始測驗：</p>
         <select id="player-no"></select>
-        <button id="start-btn" onclick="initGame()" disabled>載入題庫中...</button>
-        <div id="debug-log">系統狀態：準備連線...</div>
+        <button id="start-btn" onclick="initGame()" disabled>系統連線中...</button>
+        <div id="debug-log">系統狀態：初始化...</div>
     </div>
 
     <div id="quiz-area" class="hidden">
-        <div style="display:flex; justify-content:space-between; font-weight:bold; color:var(--main);">
+        <div style="display:flex; justify-content:space-between; font-weight:bold; color:var(--main); font-size: 0.9em;">
             <span id="q-count">0/10</span>
             <span id="score-text">得分: 0</span>
         </div>
         <div id="timer-bg"><div id="timer-fill"></div></div>
         <div id="q-text" class="q-text"></div>
         <div class="options-grid" id="options-area">
-            <button class="opt-btn" onclick="handleAnswer(1)">1</button>
-            <button class="opt-btn" onclick="handleAnswer(2)">2</button>
-            <button class="opt-btn" onclick="handleAnswer(3)">3</button>
-            <button class="opt-btn" onclick="handleAnswer(4)">4</button>
+            <button class="opt-btn" onclick="handleAnswer(1)"></button>
+            <button class="opt-btn" onclick="handleAnswer(2)"></button>
+            <button class="opt-btn" onclick="handleAnswer(3)"></button>
+            <button class="opt-btn" onclick="handleAnswer(4)"></button>
         </div>
     </div>
 
     <div id="end-screen" class="hidden">
-        <h2>🎉 挑戰完成</h2>
-        <h1 id="final-score" style="font-size: 3.5em; color: var(--main); margin: 0;">0</h1>
-        <div id="rank-box" style="margin-top:15px; text-align:left; background:#f9f9f9; padding:10px; border-radius:10px;">
-            <div style="text-align:center; font-weight:bold;">🏆 排行榜</div>
+        <h3>測驗完成</h3>
+        <p>工作項目 02：作業準備</p>
+        <h1 id="final-score" style="font-size: 3em; color: var(--main); margin: 10px 0;">0</h1>
+        <div id="rank-box" style="margin-top:15px; text-align:left; background:#f9f9f9; padding:15px; border-radius:10px; font-size: 0.9em;">
+            <div style="text-align:center; font-weight:bold; color: #555; margin-bottom: 8px;">🏆 全班前五名排行榜</div>
             <div id="rank-content">載入中...</div>
         </div>
-        <button onclick="location.reload()" style="margin-top:15px; padding:10px 20px; border-radius:20px; border:none; background:var(--main); color:white;">回主畫面</button>
+        <button onclick="location.reload()" style="margin-top:20px; padding:10px 25px; border-radius:20px; border:none; background:var(--main); color:white; cursor:pointer;">重新測驗</button>
     </div>
 </div>
 
 <script>
-    // --- 修正後的配置連結 ---
     const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaKApjd61Cc4pPeBW3gBknoHdaCkKavZnjSriMPVnWSNx6tbQyksw4fX9DDEo6zlSevqNQ4vvPkqMl/pub?gid=1437660801&single=true&output=csv";
     const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScOCC3XH910Aj2izzG6Un-9P0y5g8KlbrCDxd1-LvsT1uSRow/formResponse";
     const ID_NO = "entry.380705505";
@@ -70,50 +70,43 @@
     let gameQuestions = [];
     let currentIdx = 0, score = 0, timer, timeLeft = 100, currentCorrectValue = 0;
 
-    function log(txt) {
-        document.getElementById('debug-log').innerHTML += "<br>> " + txt;
-    }
+    function log(txt) { document.getElementById('debug-log').innerHTML += "<br>> " + txt; }
 
-    // 1. 初始化座號
+    // 初始化座號
     const sel = document.getElementById('player-no');
     for(let i=1; i<=36; i++){
         let o = document.createElement('option'); o.value = i; o.textContent = i + " 號";
         sel.appendChild(o);
     }
 
-    // 2. 核心載入函數 (修正網址拼湊)
+    // 載入資料
     async function loadData() {
-        log("發送請求...");
         try {
-            // 使用更安全的方式處理快取網址
             const fetchUrl = SHEET_CSV.includes('?') ? `${SHEET_CSV}&t=${Date.now()}` : `${SHEET_CSV}?t=${Date.now()}`;
             const res = await fetch(fetchUrl);
-            
-            if (!res.ok) throw new Error("代碼 " + res.status);
-            
+            if (!res.ok) throw new Error("連線失敗 (HTTP " + res.status + ")");
             const text = await res.text();
-            log("讀取成功，解析中...");
             
             const lines = text.split(/\r?\n/);
             const temp = [];
             lines.forEach((line) => {
                 const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
+                // 檢查第二欄是否為數字 1,2,3,4
                 if (cols.length >= 6 && ['1','2','3','4'].includes(cols[1])) {
                     temp.push({ q: cols[0], opts: [cols[2], cols[3], cols[4], cols[5]], a: parseInt(cols[1]) });
                 }
             });
 
             if (temp.length === 0) {
-                log("警告：解析不到題目。請確認 B 欄是數字 1-4");
+                log("警告：讀取成功但解析題目為 0。請確認 B 欄是數字 1-4");
             } else {
                 allQuestions = temp;
                 document.getElementById('start-btn').disabled = false;
-                document.getElementById('start-btn').innerText = "開始挑戰";
-                log("完成！載入 " + allQuestions.length + " 題");
+                document.getElementById('start-btn').innerText = "開始測驗";
+                log("連線成功！讀取 " + allQuestions.length + " 題。");
             }
         } catch (e) {
-            log("錯誤訊息：" + e.message);
-            log("請確認試算表「發佈到網路」設定是否正確");
+            log("連線出錯：" + e.message);
         }
     }
 
@@ -129,16 +122,15 @@
         if (currentIdx >= gameQuestions.length) { endGame(); return; }
         const data = gameQuestions[currentIdx];
         document.getElementById('q-count').innerText = `${currentIdx+1} / 10`;
-        document.getElementById('q-text').innerText = data.q;
+        document.getElementById('q-text').innerText = (currentIdx+1) + ". " + data.q;
         currentCorrectValue = data.a;
 
         const btns = document.querySelectorAll('.opt-btn');
         btns.forEach((btn, i) => {
-            btn.innerText = (i + 1) + ". " + data.opts[i]; // 顯示「1. 選項文字」
+            btn.innerText = "(" + (i + 1) + ") " + data.opts[i];
             btn.className = 'opt-btn';
             btn.disabled = false;
         });
-        
         startTimer();
     }
 
@@ -187,8 +179,12 @@
                 return { n: c[1], s: parseInt(c[2]) || 0 };
             }).filter(i => i.n);
             data.sort((a, b) => b.s - a.s);
-            content.innerHTML = data.slice(0, 5).map((it, i) => `<div>${i+1}. ${it.n}號 (${it.s}分)</div>`).join('') || "尚無資料";
-        } catch (e) { content.innerText = "排行榜載入中..."; }
+            content.innerHTML = data.slice(0, 5).map((it, i) => `
+                <div style="display:flex; justify-content:space-between; padding:5px 0; border-bottom: 1px dashed #ddd;">
+                    <span>${i+1}. ${it.n} 號</span>
+                    <span>${it.s} 分</span>
+                </div>`).join('') || "尚無資料";
+        } catch (e) { content.innerText = "排行榜同步中..."; }
     }
 
     window.onload = loadData;
