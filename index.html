@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>知識王 KING - 雲端紀錄版</title>
+    <title>知識王 KING - 正式紀錄版</title>
     <style>
         :root { --main: #6c5ce7; --bg: #f0f2f5; --win: #00b894; --lose: #d63031; }
         body { font-family: "Microsoft JhengHei", sans-serif; background: var(--bg); display: flex; justify-content: center; align-items: center; min-height: 100vh; margin: 0; }
@@ -16,9 +16,9 @@
         .correct { background: var(--win) !important; color: white; border-color: var(--win); }
         .wrong { background: var(--lose) !important; color: white; border-color: var(--lose); }
         .hidden { display: none; }
-        select#player-no { width: 100%; padding: 12px; font-size: 1.1em; border-radius: 10px; border: 2px solid var(--main); margin-bottom: 20px; }
-        button#start-btn { padding: 15px 40px; font-size: 1.2em; background: var(--main); color: white; border: none; border-radius: 50px; cursor: pointer; }
-        button#start-btn:disabled { background: #ccc; }
+        select#player-no { width: 100%; padding: 12px; font-size: 1.1em; border-radius: 10px; border: 2px solid var(--main); margin-bottom: 20px; outline: none; }
+        button#start-btn { padding: 15px 40px; font-size: 1.2em; background: var(--main); color: white; border: none; border-radius: 50px; cursor: pointer; box-shadow: 0 4px 15px rgba(108, 92, 231, 0.3); }
+        button#start-btn:disabled { background: #ccc; box-shadow: none; }
     </style>
 </head>
 <body>
@@ -26,18 +26,18 @@
 <div id="game-box">
     <div id="start-screen">
         <h1>知識王 KING</h1>
-        <p>請選擇座號：</p>
+        <p>選擇你的座號：</p>
         <select id="player-no">
-            <option value="" disabled selected>-- 選擇座號 --</option>
+            <option value="" disabled selected>-- 請選號碼 --</option>
         </select>
         <br>
-        <button id="start-btn" onclick="initGame()" disabled>題庫連線中...</button>
-        <p id="msg" style="font-size: 0.8em; color: #666; margin-top: 15px;"></p>
+        <button id="start-btn" onclick="initGame()" disabled>同步資料中...</button>
+        <p id="msg" style="font-size: 0.85em; color: #666; margin-top: 15px;"></p>
     </div>
 
     <div id="quiz-area" class="hidden">
         <div style="display:flex; justify-content:space-between; font-weight:bold; color:var(--main);">
-            <span id="q-count">0 / 0</span>
+            <span id="q-count">載入中...</span>
             <span id="score-text">得分: 0</span>
         </div>
         <div id="timer-bg"><div id="timer-fill"></div></div>
@@ -45,123 +45,4 @@
         <div class="options-grid" id="options-area">
             <button class="opt-btn" onclick="checkAnswer(0)"></button>
             <button class="opt-btn" onclick="checkAnswer(1)"></button>
-            <button class="opt-btn" onclick="checkAnswer(2)"></button>
-            <button class="opt-btn" onclick="checkAnswer(3)"></button>
-        </div>
-    </div>
-
-    <div id="end-screen" class="hidden">
-        <h2>挑戰結束！</h2>
-        <p id="final-info"></p>
-        <h1 id="final-score" style="font-size: 3.5em; color: var(--main); margin: 10px 0;">0</h1>
-        <p id="upload-status" style="color: #e67e22; font-weight: bold;">正在同步分數到雲端...</p>
-        <button onclick="location.reload()" style="padding:10px 25px; border-radius:10px; cursor:pointer; background:var(--main); color:white; border:none; margin-top:20px;">回主畫面</button>
-    </div>
-</div>
-
-<script>
-    // --- 配置區 ---
-    const SHEET_CSV = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTaKApjd61Cc4pPeBW3gBknoHdaCkKavZnjSriMPVnWSNx6tbQyksw4fX9DDEo6zlSevqNQ4vvPkqMl/pub?gid=1437660801&single=true&output=csv";
-    const FORM_URL = "https://docs.google.com/forms/d/e/1FAIpQLScOCC3XH910Aj2izzG6Un-9P0y5g8KlbrCDxd1-LvsT1uSRow/formResponse";
-    const ID_NO = "entry.1697204780";    // 座號欄位ID
-    const ID_SCORE = "entry.830691507"; // 分數欄位ID
-    // --------------
-
-    let questions = [];
-    let currentIdx = 0, score = 0, timer, timeLeft = 100, currentCorrectIdx = 0;
-
-    // 產生 1-36 號
-    const sel = document.getElementById('player-no');
-    for(let i=1; i<=36; i++) {
-        let o = document.createElement('option');
-        o.value = i; o.textContent = i + " 號";
-        sel.appendChild(o);
-    }
-
-    async function loadQuestions() {
-        try {
-            const res = await fetch(SHEET_CSV + "&cache=" + Date.now());
-            const text = await res.text();
-            const lines = text.split(/\r?\n/);
-            const temp = [];
-            lines.forEach(line => {
-                const cols = line.split(/,(?=(?:(?:[^"]*"){2})*[^"]*$)/).map(c => c.replace(/^"|"$/g, '').trim());
-                const map = {'A':0, 'B':1, 'C':2, 'D':3};
-                if (cols.length >= 6 && map.hasOwnProperty(cols[1].toUpperCase())) {
-                    temp.push({ q: cols[0], opts: [cols[2], cols[3], cols[4], cols[5]], a: map[cols[1].toUpperCase()] });
-                }
-            });
-            questions = temp;
-            document.getElementById('start-btn').disabled = false;
-            document.getElementById('start-btn').innerText = "開始挑戰";
-            document.getElementById('msg').innerText = "✅ 成功載入 " + questions.length + " 題";
-        } catch (e) { document.getElementById('msg').innerText = "❌ 題庫讀取失敗"; }
-    }
-
-    function initGame() {
-        if (!sel.value) { alert("請先選擇座號！"); return; }
-        document.getElementById('start-screen').classList.add('hidden');
-        document.getElementById('quiz-area').classList.remove('hidden');
-        questions.sort(() => Math.random() - 0.5);
-        showQuestion();
-    }
-
-    function showQuestion() {
-        if (currentIdx >= questions.length) { endGame(); return; }
-        const data = questions[currentIdx];
-        document.getElementById('q-count').innerText = `${currentIdx + 1} / ${questions.length}`;
-        document.getElementById('q-text').innerText = data.q;
-        const combined = data.opts.map((t, i) => ({ t, isCorrect: i === data.a }));
-        combined.sort(() => Math.random() - 0.5);
-        const btns = document.querySelectorAll('.opt-btn');
-        combined.forEach((o, i) => {
-            btns[i].innerText = o.t;
-            btns[i].className = 'opt-btn';
-            btns[i].disabled = false;
-            if (o.isCorrect) currentCorrectIdx = i;
-        });
-        startTimer();
-    }
-
-    function startTimer() {
-        timeLeft = 100;
-        clearInterval(timer);
-        timer = setInterval(() => {
-            timeLeft -= 2; 
-            document.getElementById('timer-fill').style.width = timeLeft + "%";
-            if (timeLeft <= 0) { clearInterval(timer); checkAnswer(-1); }
-        }, 100);
-    }
-
-    function checkAnswer(idx) {
-        clearInterval(timer);
-        const btns = document.querySelectorAll('.opt-btn');
-        btns.forEach(b => b.disabled = true);
-        if (idx === currentCorrectIdx) {
-            btns[idx].classList.add('correct');
-            score += Math.max(10, Math.floor(timeLeft));
-        } else {
-            if (idx !== -1) btns[idx].classList.add('wrong');
-            btns[currentCorrectIdx].classList.add('correct');
-        }
-        document.getElementById('score-text').innerText = "得分: " + score;
-        setTimeout(() => { currentIdx++; showQuestion(); }, 1200);
-    }
-
-    function endGame() {
-        document.getElementById('quiz-area').classList.add('hidden');
-        document.getElementById('end-screen').classList.remove('hidden');
-        document.getElementById('final-info').innerText = sel.value + " 號玩家，你的得分為：";
-        document.getElementById('final-score').innerText = score;
-
-        // 核心上傳代碼
-        const postUrl = `${FORM_URL}?${ID_NO}=${encodeURIComponent(sel.value)}&${ID_SCORE}=${score}&submit=Submit`;
-        fetch(postUrl, { mode: 'no-cors' })
-            .then(() => document.getElementById('upload-status').innerText = "✅ 分數已成功存入雲端！")
-            .catch(() => document.getElementById('upload-status').innerText = "❌ 紀錄暫時失敗。");
-    }
-
-    window.onload = loadQuestions;
-</script>
-</body>
-</html>
+            <button class="opt-btn" onclick="checkAnswer(2)"></button
